@@ -7,34 +7,67 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
     try {
+      setIsLoading(true);
+      setError("");
+
+      if (!username || !password) {
+        setError("გთხოვთ შეავსოთ ყველა ველი");
+        return;
+      }
+
       const formData = new URLSearchParams();
       formData.append("username", username);
       formData.append("password", password);
       formData.append("grant_type", "password");
 
+      console.log("Attempting login with:", {
+        url: "http://100.106.146.72:8000/login",
+        username,
+        formData: formData.toString()
+      });
+
       const response = await fetch("http://100.106.146.72:8000/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json"
         },
         body: formData,
       });
 
+      console.log("Response status:", response.status);
+      
+      const responseData = await response.text();
+      console.log("Raw response:", responseData);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.detail || "შეცდომა ავტორიზაციაში");
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(responseData);
+          errorMessage = errorData.detail || "ავტორიზაცია ვერ მოხერხდა";
+        } catch {
+          errorMessage = "სერვერთან კავშირი ვერ მოხერხდა";
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseData);
+      if (!data.access_token) {
+        throw new Error("ტოკენი ვერ მოიძებნა პასუხში");
+      }
+
       localStorage.setItem("access_token", data.access_token);
       router.push("/dashboard");
     } catch (error) {
-      console.error("Error during login:", error);
+      console.error("Login error:", error);
       setError(error instanceof Error ? error.message : "შეცდომა სერვერთან კავშირისას");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,6 +85,7 @@ export default function LoginPage() {
           placeholder="მომხმარებელი"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          disabled={isLoading}
         />
         <input
           type="password"
@@ -59,12 +93,15 @@ export default function LoginPage() {
           placeholder="პაროლი"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          disabled={isLoading}
+          onKeyPress={(e) => e.key === "Enter" && handleLogin()}
         />
         <button
-          className="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700"
+          className="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700 disabled:bg-gray-400"
           onClick={handleLogin}
+          disabled={isLoading}
         >
-          ავტორიზაცია
+          {isLoading ? "მიმდინარეობს..." : "ავტორიზაცია"}
         </button>
       </div>
     </div>
