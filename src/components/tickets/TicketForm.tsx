@@ -38,7 +38,6 @@ export default function TicketForm({ onSubmit }: TicketFormProps) {
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
