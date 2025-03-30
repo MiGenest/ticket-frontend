@@ -2,13 +2,17 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push("/dashboard");
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      router.push("/dashboard");
+    } else {
+      router.push("/login");
+    }
   }, [router]);
 
   return (
